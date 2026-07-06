@@ -7,19 +7,25 @@ from __future__ import annotations
 
 import re
 
-# A roll number such as ``A23126502001`` or ``A23126508062``: one or two
-# leading letters followed by 9-12 digits. Kept deliberately generic so other
-# branches / admission years still match.
-ROLL_NUMBER_RE: re.Pattern[str] = re.compile(r"^[A-Z]{1,2}\d{9,12}$")
+# A roll number such as ``A23126502001`` (letter-prefixed, newer batches) or
+# ``319126502009`` / ``317126514150`` (digit-prefixed, older batches), and even
+# ``321126510L09`` (a letter can appear in the tail). The structure is a 3-char
+# prefix (``A21`` or ``317``), a 3-digit institute code, then a 5-7 char tail.
+_ROLL = r"(?:[A-Z]\d{2}|\d{3})\d{3}[A-Z0-9]{5,7}"
+ROLL_NUMBER_RE: re.Pattern[str] = re.compile(rf"^{_ROLL}$")
 
 # A line that begins with a roll number (used to detect student data rows).
-ROLL_LINE_RE: re.Pattern[str] = re.compile(r"^([A-Z]{1,2}\d{9,12})\b")
+ROLL_LINE_RE: re.Pattern[str] = re.compile(rf"^({_ROLL})\b")
 
 # SGPA / CGPA values look like ``7.36`` or ``10.00``.
 FLOAT_RE: re.Pattern[str] = re.compile(r"^\d{1,2}\.\d{1,2}$")
 
-# A single grade cell.
-GRADE_RE: re.Pattern[str] = re.compile(r"^(?:O|A\+|A|B\+|B|C|P|F|Ab)$")
+# A single grade cell. "I" (incomplete/improvement) appears in supplementary
+# sheets; "Ab" marks an absent student.
+GRADE_RE: re.Pattern[str] = re.compile(r"^(?:O|A\+|A|B\+|B|C|P|F|Ab|I)$")
+
+# Regulation code inside the Course/Sem block, e.g. (R15), (R19), (R20), (R20.1), (R23).
+REGULATION_RE: re.Pattern[str] = re.compile(r"\(\s*(R\d+(?:\.\d+)?)\s*\)", re.IGNORECASE)
 
 # ---------------------------------------------------------------------------
 # Metadata header patterns. These run against a whitespace-normalised copy of

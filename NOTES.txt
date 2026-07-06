@@ -1,0 +1,51 @@
+anits-pdf-parser/
+├── app.py                      # Flask app factory, routes, global error handlers
+├── requirements.txt
+├── models/
+│   ├── result_response.py      # ResultResponse dataclass -> JSON
+│   └── student_result.py       # StudentResult dataclass -> JSON
+├── services/
+│   ├── pdf_service.py          # validation + memory-friendly page streaming
+│   ├── metadata_service.py     # branch/semester/examType/heldIn
+│   ├── subject_service.py      # dynamic subject reconstruction
+│   └── parser_service.py       # orchestration + student row parsing
+├── utils/
+│   ├── constants.py
+│   ├── regex_utils.py
+│   └── exceptions.py           # InvalidPdf / Metadata / Parsing exceptions
+└── tests/                      # 21 pytest tests
+
+
+The subject-vs-lab fix is complete and verified. Let me confirm the final project state is clean.
+
+Searched workspace
+Confirm the final structure is complete and no temporary files remain.
+The project is complete and clean. All temporary files are gone, and the full structure is in place with 34 passing tests.
+
+Final state
+anits-pdf-parser/
+├── app.py                          # Flask app: /extract-results, /health, error handlers
+├── requirements.txt
+├── models/
+│   ├── result_response.py          # ResultResponse + ResultSection (multi-branch)
+│   └── student_result.py
+├── services/
+│   ├── pdf_service.py              # validation + memory-friendly page streaming
+│   ├── metadata_service.py         # per-page branch/semester/exam/date
+│   ├── subject_service.py          # dynamic column reconstruction
+│   ├── normalization_service.py    # optional clean-name + subject/lab distinction
+│   └── parser_service.py           # per-page orchestration + section grouping
+├── utils/
+│   ├── constants.py                # limits, grades, NORMALIZE_SUBJECTS toggle
+│   ├── regex_utils.py
+│   ├── exceptions.py
+│   └── subject_aliases.py          # editable canonical subject catalogue
+└── tests/                          # 34 tests (unit + integration)
+What the service now does correctly
+Multi-branch aware — parses each page's own header, groups pages into 9 sections (1,692 students) by branch/semester/exam/date.
+Dynamic subjects — reconstructs subject names per page from column geometry, no hardcoding in the extraction path.
+Subject ≠ lab — a subject and its lab always stay distinct. Genuine theory/lab pairs (identical truncated text) are correctly paired as X / X Lab; distinct subjects that merely truncate alike (like the CN&O column) are never mislabeled as a lab.
+No lost grades — duplicate subject keys are eliminated, so every grade column maps to a unique subject.
+Edge cases — missing SGPA/CGPA, F and Ab (absent) grades, and incomplete rows are handled without crashing.
+Production concerns — file validation, temp-file cleanup, custom exceptions with proper HTTP codes, logging, and streaming for large PDFs.
+Run it with python app.py (serves on :5000) and the tests with python -m pytest -q. Subject normalization is on by default and can be turned off via the NORMALIZE_SUBJECTS=false environment variable if you ever want the raw reconstructed names.

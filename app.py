@@ -19,6 +19,7 @@ from flask import Flask, jsonify, request
 
 from services.parser_service import ParserService
 from services.pdf_service import PdfService
+from services.supplementary_parser import SupplementaryParser
 from utils import constants
 from utils.exceptions import PdfParserException
 
@@ -46,9 +47,11 @@ def create_app() -> Flask:
         """Simple liveness probe for orchestrators / n8n."""
         return jsonify({"status": "UP"}), 200
 
-    @app.route("/extract-results", methods=["POST"])
-    def extract_results():
-        """Validate, persist temporarily, parse and return structured results."""
+    def _process_upload(parse_fn):
+        """Validate the upload, persist it temporarily, parse and clean up.
+
+        ``parse_fn`` takes a file path and returns an object with ``to_dict``.
+        """
         file = request.files.get("file")
         PdfService.validate_upload(file)
 
@@ -59,7 +62,7 @@ def create_app() -> Flask:
 
         try:
             PdfService.validate_pdf_file(file_path)
-            response = ParserService.parse(file_path)
+            response = parse_fn(file_path)
             return jsonify(response.to_dict()), 200
         finally:
             # Always clean up the temporary file (item 10: performance).
@@ -68,6 +71,24 @@ def create_app() -> Flask:
                 logger.debug("Removed temp file %s", file_path)
             except OSError:
                 logger.warning("Could not delete temp file %s", file_path)
+
+    @app.route("/extract-results", methods=["POST"])
+    def extract_results():
+        """Validate, persist temporarily, parse and return structured results.
+
+        Handles *regular* result sheets grouped by branch section.
+        """
+        return _process_upload(ParserService.parse)
+
+    @app.route("/extract-supplementary-results", methods=["POST"])
+    def extract_supplementary_results():
+        """Parse a *supplementary* result sheet grouped by regulation.
+
+        Supplementary tables are sparse, so grades are mapped to subjects by
+        their column position, and the response nests
+        regulation -> departments -> students.
+        """
+        return _process_upload(SupplementaryParser.parse)
 
     # -- error handlers -----------------------------------------------------
     @app.errorhandler(PdfParserException)

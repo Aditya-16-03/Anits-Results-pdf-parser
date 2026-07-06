@@ -38,8 +38,9 @@ PDF_MAGIC_HEADER: bytes = b"%PDF-"
 # Grade vocabulary
 # ---------------------------------------------------------------------------
 # Every grade token that can legitimately appear in a result cell.
-# "Ab" denotes an absent student, "F" a fail.
-VALID_GRADES: set[str] = {"O", "A+", "A", "B+", "B", "C", "P", "F", "Ab"}
+# "Ab" denotes an absent student, "F" a fail, "I" an incomplete / improvement
+# (seen in supplementary result sheets).
+VALID_GRADES: set[str] = {"O", "A+", "A", "B+", "B", "C", "P", "F", "Ab", "I"}
 
 # ---------------------------------------------------------------------------
 # Layout / geometry tolerances used when reconstructing columns from word

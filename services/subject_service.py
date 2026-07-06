@@ -115,7 +115,9 @@ class SubjectService:
             if not tokens:
                 continue
             grade_like = sum(1 for t in tokens if t in constants.GRADE_HEADER_TOKENS)
-            if grade_like >= max(2, len(tokens) // 2):
+            # Detect the "Grade" anchor row even when there is a single subject
+            # column (supplementary sheets can have just one subject).
+            if grade_like >= 1 and grade_like >= len(tokens) / 2:
                 return idx
         return None
 

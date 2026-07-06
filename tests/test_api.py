@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import io
 
-from tests.conftest import requires_sample_pdf
+from tests.conftest import requires_sample_pdf, requires_supplementary_pdf
 
 
 def test_health_endpoint(client):
@@ -37,6 +37,29 @@ def test_corrupted_pdf_is_rejected(client):
     resp = client.post("/extract-results", data=data, content_type="multipart/form-data")
     assert resp.status_code == 400
     assert resp.get_json()["error"] == "InvalidPdfException"
+
+
+def test_supplementary_endpoint_rejects_non_pdf(client):
+    data = {"file": (io.BytesIO(b"nope"), "notes.txt")}
+    resp = client.post(
+        "/extract-supplementary-results", data=data, content_type="multipart/form-data"
+    )
+    assert resp.status_code == 400
+    assert resp.get_json()["error"] == "InvalidPdfException"
+
+
+@requires_supplementary_pdf
+def test_supplementary_endpoint_with_real_pdf(client, supplementary_pdf_path):
+    with open(supplementary_pdf_path, "rb") as handle:
+        data = {"file": (io.BytesIO(handle.read()), "supplementary.pdf")}
+        resp = client.post(
+            "/extract-supplementary-results", data=data, content_type="multipart/form-data"
+        )
+    assert resp.status_code == 200
+    payload = resp.get_json()
+    assert payload["examType"] == "Supplementary Examinations"
+    assert payload["regulationCount"] >= 1
+    assert "regulations" in payload
 
 
 @requires_sample_pdf
